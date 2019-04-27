@@ -1,11 +1,14 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import networkx as nx
 import numpy as np
 from client import Client
+import pdb
+import IPython
+
 
 class AmroshAlg:
 
-    def __init__(self, client: Client) -> None:
+    def __init__(self, client: Client, bot_loc: List[int] = None) -> None:
         self.client: Client = client
         self.graph: nx.Graph = client.G
         self.n_nodes: int = self.graph.number_of_nodes()
@@ -16,6 +19,7 @@ class AmroshAlg:
         self.students: int = client.students
 
         self.bfs_T: nx.DiGraph = self._get_bfs_tree()
+        self.bot_loc = bot_loc
 
     def _get_bfs_tree(self) -> nx.DiGraph:
         """
@@ -27,7 +31,7 @@ class AmroshAlg:
     def get_info(self) -> Tuple[List[int], int]:
         """
         Get the bot locations by running the optimal sequence of scouts and remotes
-        Greedily on the MST run remote on the nodes with largest number of yeses
+        Greedily on the MST. Runs remote on the nodes with largest number of yeses
         This will help us either find the lies or bots
         At the same time update the number of lies each person is telling
         Do this until someone exhausts all the lies he/she could tell
@@ -48,30 +52,30 @@ class AmroshAlg:
         n_true = np.sum(std_ans_arr, axis=0)
         max_n_lies = np.minimum(n_true + self.bots, self.n_nodes//2)
         node_value = np.sum(std_ans_arr, axis=1)
-        node_dict = dict(zip(self.non_home, node_value))
         std_lies_arr = np.array([0]*self.students)
 
-        sorted_nodes = sorted(self.non_home, key=lambda x: node_dict[x],
-                              reverse=True)
+        sorted_i_v = sorted(range(len(self.non_home)), key=lambda x: node_value[x], reverse=True)
 
         marked = {}
         n_remote = 0
-        for v in sorted_nodes:
+        for i_v in sorted_i_v:
+            v = self.non_home[i_v]
             parent, _ = list(self.bfs_T.in_edges(v)).pop()
             n_remoted_bots = self.client.remote(v, parent)
             n_remote += 1
             marked[v] = True
             if n_remoted_bots != 0:
                 # there was a bot in v
-                std_lies_arr[std_ans_arr[v] == False] += 1
+                std_lies_arr[std_ans_arr[i_v] == False] += 1
             else:
                 # there was no bot in v
-                std_lies_arr[std_ans_arr[v] == True] += 1
+                std_lies_arr[std_ans_arr[i_v] == True] += 1
 
             honest_stds = np.where(std_lies_arr >= max_n_lies)[0]
             if len(honest_stds) != 0:
                 honest_std = honest_stds[0]
                 undiscovered_bot_locations = []
+                print("[info] Honest student found at {}".format(honest_std))
                 for i, i_ans in enumerate(std_ans_arr[:, honest_std]):
                     if marked[i]:
                         continue
@@ -112,10 +116,20 @@ class AmroshAlg:
                 pass
         return n_remotes
 
-    def run(self):
-        bot_locs, n_discover_remotes = self.get_info()
+    def run(self, is_bot_loc_known: bool = False, assume_bot_everywhere: bool = False) \
+            -> Dict[str, int]:
+        n_discover_remotes = 0
+        if (is_bot_loc_known):
+            if not self.bot_loc:
+                raise ValueError("self.bot_loc is not set")
+            bot_locs = self.bot_loc
+        elif assume_bot_everywhere:
+            bot_locs = self.non_home
+        else:
+            bot_locs, n_discover_remotes = self.get_info()
+
         discover_time = self.client.time
         n_resque_remotes = self.bring_home(bot_locs)
-        print(dict(n_scout_remotes=n_discover_remotes, n_extra_remotes=n_resque_remotes,
-                   n_remotes=n_discover_remotes + n_resque_remotes,
-                   discover_time=discover_time, total_time=self.client.time))
+        return dict(n_scout_remotes=n_discover_remotes, n_extra_remotes=n_resque_remotes,
+                    n_remotes=n_discover_remotes + n_resque_remotes,
+                    discover_time=discover_time, total_time=self.client.time)

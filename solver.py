@@ -1,24 +1,30 @@
 import networkx as nx
 from algorithm import AmroshAlg
+import json
 
 def solve(client):
-    client.end()
-    client.start()
+    args = [{}, {'is_bot_loc_known':True}, {'assume_bot_everywhere':True}]
+    results = []
+    for arg in args:
+        client.start()
 
-    # instance_name = 'toronto_29_1'
-    # arg_file = instance_name.rsplit('_', 1)[0] + '.json'
-    # with open('test_graphs/{}'.format(arg_file), 'r') as f:
-    #     graph_data = json.load(f)
-    # instance = dict()
-    # for _instance in graph_data['instances']:
-    #     if _instance['instanceName'].lower() == instance_name.lower():
-    #         instance = _instance
-    #         break
+        instance_name = 'singapore_0_2'
+        arg_file = instance_name.rsplit('_', 1)[0] + '.json'
+        with open('test_graphs/{}'.format(arg_file), 'r') as f:
+            graph_data = json.load(f)
+        instance = dict()
+        for _instance in graph_data['instances']:
+            if _instance['instanceName'].lower() == instance_name.lower():
+                instance = _instance
+                break
 
-    alg = AmroshAlg(client)
-    alg.run()
+        alg = AmroshAlg(client, bot_loc=instance['bots'])
+        result = alg.run(**arg)
+        # print(result)
+        results.append(result)
 
-    client.end()
+        client.end()
+    print(results)
 
 def test_nx():
     g = nx.Graph()
