@@ -1,27 +1,7 @@
 from typing import List, Tuple
 import networkx as nx
-import json
 import numpy as np
 from client import Client
-
-def solve(client):
-    client.end()
-    client.start()
-
-    instance_name = 'toronto_29_0'
-    arg_file = instance_name.rsplit('_', 1)[0] + '.json'
-    with open('test_graphs/{}'.format(arg_file), 'r') as f:
-        graph_data = json.load(f)
-    instance = dict()
-    for _instance in graph_data['instances']:
-        if _instance['instanceName'].lower() == instance_name.lower():
-            instance = _instance
-            break
-
-    alg = AmroshAlg(client)
-    alg.run()
-
-    client.end()
 
 class AmroshAlg:
 
@@ -139,11 +119,3 @@ class AmroshAlg:
         print(dict(n_scout_remotes=n_discover_remotes, n_extra_remotes=n_resque_remotes,
                    n_remotes=n_discover_remotes + n_resque_remotes,
                    discover_time=discover_time, total_time=self.client.time))
-
-
-def test_nx():
-    g = nx.Graph()
-    g.add_weighted_edges_from([(1,2,1), (2,3,1), (3,4,1), (4,5,100), (2,5,100), (3,5,1)])
-
-if __name__ == '__main__':
-    test_nx()
