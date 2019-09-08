@@ -8,7 +8,7 @@ def solve(client):
     for arg in args:
         client.start()
 
-        instance_name = 'singapore_0_2'
+        instance_name = 'toronto_0_15'
         arg_file = instance_name.rsplit('_', 1)[0] + '.json'
         with open('test_graphs/{}'.format(arg_file), 'r') as f:
             graph_data = json.load(f)
